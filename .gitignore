@@ -1,0 +1,9 @@
+openclaw.json
+memory/
+*.env
+.env*
+USER.md
+IDENTITY.md
+HEARTBEAT.md
+VOICE.md
+.DS_Store
