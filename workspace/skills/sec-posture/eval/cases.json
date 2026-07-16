@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "description": "Hand-authored eval set for the sec-posture Analyst Agent (POST /api/analyze). Each finding uses the same shape as a posture.json entry. expectedVerdict is the label a competent human security reviewer would assign; rationale is why. Domains match scan.ts's 5 domains exactly.",
+  "cases": [
+    {
+      "id": "secret-exposure-01",
+      "domain": "Secret Exposure",
+      "expectedVerdict": "real-risk",
+      "rationale": "AKIA-prefixed AWS access key ID paired with a matching secret, committed directly in source, is a live long-lived credential with no expiry — unambiguous critical finding, not a false positive.",
+      "finding": {
+        "severity": "crit",
+        "title": "Hardcoded AWS access key in source",
+        "detail": "A live-looking AWS access key ID (AKIA-prefixed) and matching secret access key are committed directly in application source, not loaded from environment variables or a secret manager.",
+        "source": "src/config/aws.js:13-14",
+        "evidence": "const AWS_ACCESS_KEY_ID = \"AKIA...T4LA\"; const AWS_SECRET_ACCESS_KEY = \"****ab7k\";",
+        "fix": {
+          "title": "Rotate the key and move to environment/secret manager",
+          "risk": "Anyone with repo read access (including git history after deletion) has permanent, unexpiring access to this AWS account.",
+          "command": null,
+          "guided": true,
+          "tier": "confirm-required",
+          "tierReason": "Rotating a live cloud credential can break running services — needs a human's go-ahead.",
+          "autoFix": null
+        }
+      }
+    },
+    {
+      "id": "file-permission-01",
+      "domain": "File Permission Health",
+      "expectedVerdict": "real-risk",
+      "rationale": "A private SSH key that is world-writable is an unambiguous, uncontested risk — any local user or process can silently replace it, and SSH itself refuses to trust a key with unsafe permissions.",
+      "finding": {
+        "severity": "crit",
+        "title": "SSH private key is world-writable",
+        "detail": "~/.ssh/id_ed25519 has mode 0666 (rw-rw-rw-) — any local user or process can modify or replace this private key without elevated privileges.",
+        "source": "~/.ssh/id_ed25519",
+        "evidence": "-rw-rw-rw-  1 nikhi  staff  411 id_ed25519",
+        "fix": {
+          "title": "Fix permissions to 0600",
+          "risk": "Any local account can tamper with or replace this key.",
+          "command": "chmod 600 ~/.ssh/id_ed25519",
+          "guided": false,
+          "tier": "auto-safe",
+          "tierReason": "chmod on a file this account owns, in ~/.ssh — narrow, reversible, no data loss.",
+          "autoFix": "chmod 600 ~/.ssh/id_ed25519"
+        }
+      }
+    },
+    {
+      "id": "credential-hygiene-01",
+      "domain": "Credential Hygiene",
+      "expectedVerdict": "real-risk",
+      "rationale": "A production DB password in plaintext, world-readable, AND not gitignored has none of the mitigating controls that would make it borderline — no permission barrier, no commit protection.",
+      "finding": {
+        "severity": "warn",
+        "title": "Plaintext production DB password, world-readable, not gitignored",
+        "detail": "config/database.yml stores the production database password in plaintext. File permissions are 0644 (world-readable) and the file is not listed in .gitignore.",
+        "source": "config/database.yml:9",
+        "evidence": "password: \"****9f2a\"",
+        "fix": {
+          "title": "Move to environment variable + add to .gitignore + tighten permissions",
+          "risk": "World-readable plaintext prod credential with no gitignore protection — any local user can read it, and it's one commit away from being pushed.",
+          "command": null,
+          "guided": true,
+          "tier": "confirm-required",
+          "tierReason": "Touches production database credentials — needs explicit confirmation before rotation.",
+          "autoFix": null
+        }
+      }
+    },
+    {
+      "id": "access-config-01",
+      "domain": "Access & Config Safety",
+      "expectedVerdict": "real-risk",
+      "rationale": "An admin interface bound to 0.0.0.0 with no auth configured is textbook real risk — reachable from the network by anyone, with zero access control.",
+      "finding": {
+        "severity": "crit",
+        "title": "Admin interface listening on all interfaces with no auth configured",
+        "detail": "The internal admin/management HTTP interface is bound to 0.0.0.0:9090 rather than loopback, and the config has no authentication middleware enabled.",
+        "source": "lsof -iTCP -sTCP:LISTEN -nP · config/admin.yml:3",
+        "evidence": "admin-server *:9090 (LISTEN) · auth: none",
+        "fix": {
+          "title": "Bind to loopback and enable auth",
+          "risk": "Unauthenticated admin surface reachable from the network.",
+          "command": null,
+          "guided": true,
+          "tier": "confirm-required",
+          "tierReason": "Changes network exposure and auth config on an admin surface — needs explicit confirmation.",
+          "autoFix": null
+        }
+      }
+    },
+    {
+      "id": "credential-hygiene-02",
+      "domain": "Credential Hygiene",
+      "expectedVerdict": "false-positive",
+      "rationale": "\"password\" appears only inside a code comment describing a UI validation rule — there is no actual secret value anywhere near it. A keyword scanner trips on the word; a reviewer reading the line sees nothing sensitive.",
+      "finding": {
+        "severity": "warn",
+        "title": "Possible password reference detected",
+        "detail": "Keyword scan matched the string \"password\" in source.",
+        "source": "src/components/SignupForm.jsx:42",
+        "evidence": "// TODO: password field should require 12+ chars per new policy, not 8",
+        "fix": null
+      }
+    },
+    {
+      "id": "access-config-02",
+      "domain": "Access & Config Safety",
+      "expectedVerdict": "false-positive",
+      "rationale": "Bound to 127.0.0.1 only — despite the unusual/high port number tripping an \"unexpected listener\" heuristic, it is not reachable from any other machine. Unusual port + loopback-only is a hygiene curiosity, not network exposure.",
+      "finding": {
+        "severity": "warn",
+        "title": "Unexpected listener on non-standard port",
+        "detail": "A process is listening on an unusual port not in the known-services list.",
+        "source": "lsof -iTCP -sTCP:LISTEN -nP",
+        "evidence": "local-dev-proxy 127.0.0.1:47812 (LISTEN)",
+        "fix": null
+      }
+    },
+    {
+      "id": "secret-exposure-02",
+      "domain": "Secret Exposure",
+      "expectedVerdict": "false-positive",
+      "rationale": "The matched key pattern lives in a test fixture file, in a __fixtures__ directory, using a value explicitly labeled FAKE — intentional test data for the app's own secret-detection logic, not a real credential.",
+      "finding": {
+        "severity": "warn",
+        "title": "AWS-key-shaped string detected in repo",
+        "detail": "Pattern matching a live AWS access key ID format was found in the repository.",
+        "source": "test/__fixtures__/secret-scanner.fixture.js:6",
+        "evidence": "const FAKE_AWS_KEY_FOR_TESTS = \"AKIAFAKEKEYDONOTUSE00\"; // intentionally fake, used to test our own scanner",
+        "fix": null
+      }
+    },
+    {
+      "id": "credential-hygiene-03",
+      "domain": "Credential Hygiene",
+      "expectedVerdict": "borderline",
+      "rationale": "The token IS plaintext (a genuine weakness in principle), but it's mitigated by both 0600 permissions and .gitignore — reasonable reviewers can disagree on whether the residual risk still earns a warn or should be downgraded to informational.",
+      "finding": {
+        "severity": "warn",
+        "title": "Plaintext API token in local config",
+        "detail": "A long-lived API token is stored unencrypted in a local config file. The file is mode 0600 (owner read/write only) and is listed in .gitignore.",
+        "source": ".env.local:4",
+        "evidence": "API_TOKEN=****k9x2",
+        "fix": {
+          "title": "Optional: migrate to OS keychain",
+          "risk": "Low residual risk given 0600 + gitignore, but the value is still recoverable by anything running as this user.",
+          "command": null,
+          "guided": true,
+          "tier": "confirm-required",
+          "tierReason": "Not urgent given existing mitigations — human judgment call on priority.",
+          "autoFix": null
+        }
+      }
+    },
+    {
+      "id": "file-permission-02",
+      "domain": "File Permission Health",
+      "expectedVerdict": "borderline",
+      "rationale": "0640 is stricter than world-readable but looser than the SSH-recommended 0600. Whether this is a real finding depends on who else is actually in that group — information the finding doesn't resolve, so reasonable analysts can land on either side.",
+      "finding": {
+        "severity": "info",
+        "title": "SSH private key is group-readable",
+        "detail": "~/.ssh/id_rsa_deploy has mode 0640 (rw-r-----) instead of the recommended 0600 — the owning group can read the key.",
+        "source": "~/.ssh/id_rsa_deploy",
+        "evidence": "-rw-r-----  1 nikhi  staff  464 id_rsa_deploy",
+        "fix": {
+          "title": "Tighten to 0600",
+          "risk": "Any account in the 'staff' group could read this key.",
+          "command": "chmod 600 ~/.ssh/id_rsa_deploy",
+          "guided": false,
+          "tier": "auto-safe",
+          "tierReason": "chmod on a file this account owns.",
+          "autoFix": "chmod 600 ~/.ssh/id_rsa_deploy"
+        }
+      }
+    },
+    {
+      "id": "incident-readiness-01",
+      "domain": "Incident Readiness",
+      "expectedVerdict": "borderline",
+      "rationale": "7-day log retention is below common best-practice guidance (30 days) but still exceeds many baseline compliance minimums. Whether this is worth flagging depends on an unstated compliance target, making it genuinely context-dependent rather than a clear pass or fail.",
+      "finding": {
+        "severity": "info",
+        "title": "Auth log retention below common best-practice guidance",
+        "detail": "Gateway auth logs are rotated and deleted after 7 days. Common security guidance recommends 30+ days for incident reconstruction, though this exceeds many baseline compliance minimums.",
+        "source": "~/.openclaw/logs/gateway.log · logrotate config",
+        "evidence": "rotate 7 (days) · compress",
+        "fix": {
+          "title": "Extend retention to 30 days",
+          "risk": "Shorter retention limits how far back an incident investigation can reconstruct events.",
+          "command": null,
+          "guided": true,
+          "tier": "confirm-required",
+          "tierReason": "Retention policy is a judgment call tied to compliance requirements the scanner doesn't know.",
+          "autoFix": null
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>sec-posture — Analyst Agent Eval</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --bg:#0b0e12; --panel:#12161c; --panel2:#181d25; --ink:#e8edf3; --muted:#8a97a8;
+  --line:#232a35; --green:#2fbf71; --amber:#f5a524; --red:#ef4444;
+  --greenbg:rgba(47,191,113,.12); --amberbg:rgba(245,165,36,.12); --redbg:rgba(239,68,68,.12);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --accent:#3fb1e5;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);padding:28px 20px 60px}
+.wrap{max-width:1080px;margin:0 auto}
+header{padding:20px 24px;background:var(--panel);border:1px solid var(--line);border-radius:16px;margin-bottom:16px}
+.brand{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+h1{margin:0;font-size:21px;font-weight:650}
+.meta{color:var(--muted);font-size:13px;margin-top:6px}
+.scorebar{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
+.score{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;min-width:120px}
+.score .num{font-size:24px;font-weight:750}
+.score .lbl{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-top:16px}
+section h2{margin:0 0 12px;font-size:15px}
+.callout{border-radius:12px;padding:14px 16px;font-size:14px;margin-top:16px}
+.callout.ok{background:var(--greenbg);border:1px solid var(--green);color:var(--ink)}
+.callout.bad{background:var(--redbg);border:1px solid var(--red);color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.snippet{color:var(--muted);font-family:var(--mono);font-size:12px;max-width:360px}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.pill.ok{background:var(--greenbg);color:var(--green)}
+.pill.warn{background:var(--amberbg);color:var(--amber)}
+.pill.miss{background:var(--redbg);color:var(--red)}
+.miss-detail{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;background:var(--panel2)}
+.miss-head{font-weight:700;margin-bottom:6px}
+.miss-finding{color:var(--muted);margin-bottom:6px;font-size:13px}
+.miss-why{color:var(--amber);margin-bottom:8px;font-size:13px}
+.miss-rationale{font-size:13px;font-family:var(--mono);white-space:pre-wrap}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="brand">sec-posture · Agent Eval</p>
+    <h1>Analyst Agent Eval — 2026-07-16T20-25-51-949Z</h1>
+    <p class="meta">Generated 2026-07-16T20:27:01.892Z · 10 cases · 69.9s run time</p>
+    <div class="scorebar">
+      <div class="score"><div class="num">90%</div><div class="lbl">Accuracy</div></div>
+      <div class="score"><div class="num">5</div><div class="lbl">Exact match</div></div>
+      <div class="score"><div class="num">4</div><div class="lbl">Reasonable disagreement</div></div>
+      <div class="score"><div class="num">1</div><div class="lbl">Genuine miss</div></div>
+      <div class="score"><div class="num">0</div><div class="lbl">Errored</div></div>
+    </div>
+    <div class="callout bad"><strong>1 genuine miss(es), 0 error(s) this run.</strong> Listed in full below — not hidden.</div>
+  </header>
+
+  <section>
+    <h2>Case-by-case results</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Domain</th><th>Expected</th><th>Analyst said</th><th>Outcome</th><th>Rationale snippet</th></tr></thead>
+      <tbody><tr>
+      <td>secret-exposure-01</td>
+      <td>Secret Exposure</td>
+      <td>real-risk</td>
+      <td>real-risk</td>
+      <td><span class="pill ok">Match</span></td>
+      <td class="snippet">**Severity: Agreed — this is correctly scored Critical. No downgrade warranted.**
+
+The `AKIA` prefix identifies a permanent IAM user access key (not a short-liv…</td>
+    </tr><tr>
+      <td>file-permission-01</td>
+      <td>File Permission Health</td>
+      <td>real-risk</td>
+      <td>real-risk</td>
+      <td><span class="pill ok">Match</span></td>
+      <td class="snippet">**Severity: Agree — `crit` is correct. Not a false positive, not over-scored.**
+
+Mode 0666 on an SSH private key is a textbook critical finding: any local user …</td>
+    </tr><tr>
+      <td>credential-hygiene-01</td>
+      <td>Credential Hygiene</td>
+      <td>real-risk</td>
+      <td>real-risk</td>
+      <td><span class="pill ok">Match</span></td>
+      <td class="snippet">**Severity: Agreed, but &quot;warn&quot; is likely *under-scored*, not over-scored.**
+
+The scanner called this `warn` — I&#39;d push it to `high`. Three independent failure m…</td>
+    </tr><tr>
+      <td>access-config-01</td>
+      <td>Access &amp; Config Safety</td>
+      <td>real-risk</td>
+      <td>real-risk</td>
+      <td><span class="pill ok">Match</span></td>
+      <td class="snippet">**Severity: Agree. This is legitimately critical — no downgrade warranted.**
+
+The two-source confirmation (lsof showing `*:9090 LISTEN` + `auth: none` in config…</td>
+    </tr><tr>
+      <td>credential-hygiene-02</td>
+      <td>Credential Hygiene</td>
+      <td>false-positive</td>
+      <td>borderline</td>
+      <td><span class="pill warn">Reasonable disagreement</span></td>
+      <td class="snippet">**False positive on the scanner&#39;s framing — but not entirely noise.** The `warn` severity for &quot;possible password reference&quot; is over-scored: this is a code comme…</td>
+    </tr><tr>
+      <td>access-config-02</td>
+      <td>Access &amp; Config Safety</td>
+      <td>false-positive</td>
+      <td>real-risk</td>
+      <td><span class="pill miss">MISS</span></td>
+      <td class="snippet">**Severity: Over-scored. This is a strong downgrade candidate — plausible `info`, not `warn`.**
+
+The binding is `127.0.0.1:47812` — loopback only, zero network …</td>
+    </tr><tr>
+      <td>secret-exposure-02</td>
+      <td>Secret Exposure</td>
+      <td>false-positive</td>
+      <td>false-positive</td>
+      <td><span class="pill ok">Match</span></td>
+      <td class="snippet">**This is a false positive. Downgrade it.**
+
+The scanner is technically correct that `AKIAFAKEKEYDONOTUSE00` matches the AWS access key ID pattern — but every s…</td>
+    </tr><tr>
+      <td>credential-hygiene-03</td>
+      <td>Credential Hygiene</td>
+      <td>borderline</td>
+      <td>real-risk</td>
+      <td><span class="pill warn">Reasonable disagreement</span></td>
+      <td class="snippet">**Severity agreement: Yes — `warn` is correctly scored, not a false positive.**
+
+The two mitigating controls here are real and meaningful: `0600` permissions li…</td>
+    </tr><tr>
+      <td>file-permission-02</td>
+      <td>File Permission Health</td>
+      <td>borderline</td>
+      <td>real-risk</td>
+      <td><span class="pill warn">Reasonable disagreement</span></td>
+      <td class="snippet">**Severity disagreement: &quot;info&quot; is under-scored. This is at minimum &quot;low,&quot; and arguably &quot;medium&quot; given the key&#39;s purpose.**
+
+0640 on a private key is a concrete…</td>
+    </tr><tr>
+      <td>incident-readiness-01</td>
+      <td>Incident Readiness</td>
+      <td>borderline</td>
+      <td>real-risk</td>
+      <td><span class="pill warn">Reasonable disagreement</span></td>
+      <td class="snippet">**Severity agreement: Yes, &quot;info&quot; is correct — no downgrade warranted.**
+
+Seven days of auth log retention is a genuine readiness gap, not a false positive, but…</td>
+    </tr></tbody>
+    </table>
+  </section>
+
+  <section><h2>Genuine misses — full detail</h2><div class="miss-detail">
+        <div class="miss-head">access-config-02 · Access &amp; Config Safety — expected <b>false-positive</b>, Analyst said <b>real-risk</b></div>
+        <div class="miss-finding"><b>Unexpected listener on non-standard port</b> — A process is listening on an unusual port not in the known-services list.</div>
+        <div class="miss-why"><i>Why expected is correct:</i> Bound to 127.0.0.1 only — despite the unusual/high port number tripping an &quot;unexpected listener&quot; heuristic, it is not reachable from any other machine. Unusual port + loopback-only is a hygiene curiosity, not network exposure.</div>
+        <div class="miss-rationale"><i>Analyst's full rationale:</i><br>**Severity: Over-scored. This is a strong downgrade candidate — plausible `info`, not `warn`.**<br><br>The binding is `127.0.0.1:47812` — loopback only, zero network exposure. That&#39;s the decisive fact the scanner apparently didn&#39;t weight heavily enough: a non-standard port on `0.0.0.0` is a real concern; on loopback it&#39;s a standard dev-tool pattern and the process name `local-dev-proxy` reinforces exactly that read. An attacker would need prior local execution to interact with it, at which point you have far worse problems than a proxy listener.<br><br>**Priority rank: Bottom tier.** Put this below any outward-facing listener, any credential or secret exposure, any permission misconfiguration, and any auth-log anomaly. It competes only with other loopback/benign-process noise findings, and likely loses to those too if they have even slightly more ambiguous process names.<br><br>**Mentor rationale:** The loopback bind (`127.0.0.1`) eliminates network attack surface entirely, and `local-dev-proxy` is a self-describing dev artifact — `warn` is the right call only if you can&#39;t confirm the process identity; once confirmed, this is informational hygiene, not a priority remediation item.</div>
+      </div></section>
+  
+
+  <footer>sec-posture Analyst Agent eval · scoring is heuristic (rationale text classification) — read the full rationale for any case before trusting the label.</footer>
+</div>
+</body>
+</html>

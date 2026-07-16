@@ -1,0 +1,285 @@
+{
+  "runId": "2026-07-16T20-24-59-401Z",
+  "generatedAt": "2026-07-16T20:26:12.527Z",
+  "baseUrl": "http://127.0.0.1:18790",
+  "totalCases": 10,
+  "scoredCases": 10,
+  "erroredCases": 0,
+  "accuracyPct": 100,
+  "counts": {
+    "match": 7,
+    "reasonableDisagreement": 3,
+    "genuineMiss": 0,
+    "unclear": 0,
+    "error": 0
+  },
+  "totalWallMs": 73125,
+  "rows": [
+    {
+      "id": "secret-exposure-01",
+      "domain": "Secret Exposure",
+      "expectedVerdict": "real-risk",
+      "caseRationale": "AKIA-prefixed AWS access key ID paired with a matching secret, committed directly in source, is a live long-lived credential with no expiry — unambiguous critical finding, not a false positive.",
+      "finding": {
+        "severity": "crit",
+        "title": "Hardcoded AWS access key in source",
+        "detail": "A live-looking AWS access key ID (AKIA-prefixed) and matching secret access key are committed directly in application source, not loaded from environment variables or a secret manager.",
+        "source": "src/config/aws.js:13-14",
+        "evidence": "const AWS_ACCESS_KEY_ID = \"AKIA...T4LA\"; const AWS_SECRET_ACCESS_KEY = \"****ab7k\";",
+        "fix": {
+          "title": "Rotate the key and move to environment/secret manager",
+          "risk": "Anyone with repo read access (including git history after deletion) has permanent, unexpiring access to this AWS account.",
+          "command": null,
+          "guided": true,
+          "tier": "confirm-required",
+          "tierReason": "Rotating a live cloud credential can break running services — needs a human's go-ahead.",
+          "autoFix": null
+        }
+      },
+      "outcome": "match",
+      "actualVerdict": "real-risk",
+      "analystRationale": "**Severity agreement: Yes, critical is correct. No downgrade.**\n\nThe AKIA prefix is AWS's own marker for long-term IAM user access keys — not a test pattern, not a placeholder. The scanner has both the key ID *and* the secret in committed source, which means anyone with repo read access has fully functional cloud credentials, right now, with no additional steps required. Long-term IAM keys don't expire on their own, and AWS won't alert you if someone else uses them — so the exposure window is open until the key is explicitly revoked. There's no plausible false-positive argument here: AKIA keys are structurally distinct from example strings, and the matching secret being present removes any residual doubt.\n\n**Priority ranking: Treat this as P0, ahead of everything else in the queue.** Hardcoded long-term cloud credentials trump most other findings because the attack path is zero-friction — no exploit, no privilege escalation needed, just a credential that works. It sits above misconfigured permissions, exposed internal endpoints, or dependency vulns because those require additional steps; this one is already a complete breach if the repo has ever touched a remote. The only thing that could outrank it is evidence the key has *already been used* by an unauthorized party, which would escalate to active incident response.\n\n**Mentor rationale:** A live AKIA key committed in source is a fully-loaded gun left in the repo — anyone with read access fires it instantly, AWS issues no alerts on use, and the blast radius scales with whatever IAM permissions that identity holds.",
+      "sessionId": "f852c129-02a6-4632-bcfd-105fcefc9c4c",
+      "durationMs": 20663,
+      "wallMs": 28029,
+      "errorDetail": null
+    },
+    {
+      "id": "file-permission-01",
+      "domain": "File Permission Health",
+      "expectedVerdict": "real-risk",
+      "caseRationale": "A private SSH key that is world-writable is an unambiguous, uncontested risk — any local user or process can silently replace it, and SSH itself refuses to trust a key with unsafe permissions.",
+      "finding": {
+        "severity": "crit",
+        "title": "SSH private key is world-writable",
+        "detail": "~/.ssh/id_ed25519 has mode 0666 (rw-rw-rw-) — any local user or process can modify or replace this private key without elevated privileges.",
+        "source": "~/.ssh/id_ed25519",
+        "evidence": "-rw-rw-rw-  1 nikhi  staff  411 id_ed25519",
+        "fix": {
+          "title": "Fix permissions to 0600",
+          "risk": "Any local account can tamper with or replace this key.",
+          "command": "chmod 600 ~/.ssh/id_ed25519",
+          "guided": false,
+          "tier": "auto-safe",
+          "tierReason": "chmod on a file this account owns, in ~/.ssh — narrow, reversible, no data loss.",
+          "autoFix": "chmod 600 ~/.ssh/id_ed25519"
+        }
+      },
+      "outcome": "match",
+      "actualVerdict": "real-risk",
+      "analystRationale": "**Severity: Agree — this is legitimately critical, not a false positive.**\n\n`0666` on a private key is worse than world-readable (`0644`) — it's world-*writable*, meaning any local user or process can silently **replace** the key with one they control, which is a persistence and impersonation vector on top of the credential-theft angle. SSH clients will also refuse to use this key at all (OpenSSH enforces strict permission checks and will bail with \"Permissions 0666 are too open\"), so there's a built-in availability impact stacked on top. There is no plausible benign explanation for `0666` on a private key — this is a misconfiguration, not a false positive. Against other findings, this ranks **#1 if any remote systems trust this key**, because the blast radius is external; bump it only if there's an active credential leak or running malware already exploiting it. **Mentor rationale:** World-writable on a private key combines credential exfiltration, silent key replacement for persistent access, and a self-inflicted SSH outage into a single file — that trifecta earns critical without ambiguity.\n\n**Fix is a one-liner when ready:** `chmod 600 ~/.ssh/id_ed25519`",
+      "sessionId": "388272ef-8248-4c51-985b-5d6a85c02e45",
+      "durationMs": 21053,
+      "wallMs": 28058,
+      "errorDetail": null
+    },
+    {
+      "id": "credential-hygiene-01",
+      "domain": "Credential Hygiene",
+      "expectedVerdict": "real-risk",
+      "caseRationale": "A production DB password in plaintext, world-readable, AND not gitignored has none of the mitigating controls that would make it borderline — no permission barrier, no commit protection.",
+      "finding": {
+        "severity": "warn",
+        "title": "Plaintext production DB password, world-readable, not gitignored",
+        "detail": "config/database.yml stores the production database password in plaintext. File permissions are 0644 (world-readable) and the file is not listed in .gitignore.",
+        "source": "config/database.yml:9",
+        "evidence": "password: \"****9f2a\"",
+        "fix": {
+          "title": "Move to environment variable + add to .gitignore + tighten permissions",
+          "risk": "World-readable plaintext prod credential with no gitignore protection — any local user can read it, and it's one commit away from being pushed.",
+          "command": null,
+          "guided": true,
+          "tier": "confirm-required",
+          "tierReason": "Touches production database credentials — needs explicit confirmation before rotation.",
+          "autoFix": null
+        }
+      },
+      "outcome": "match",
+      "actualVerdict": "real-risk",
+      "analystRationale": "**Severity call: Underscored, not a false positive.**\n\n`warn` is too soft for this finding. You have three compounding failures stacked on a single production credential: plaintext storage, world-readable permissions (0644 means any local user or process can cat it), and no .gitignore entry — meaning one `git add .` away from being committed to version history, potentially permanently and publicly. Any one of these alone is a warn; all three together on a *production* password is a high, and a reasonable case exists for critical depending on what the DB guards.\n\n**Priority ranking:** This belongs at or near the top of the queue, above most other credential hygiene findings. The \"production\" qualifier is the deciding factor — dev/staging secrets carry lower blast radius, but a production DB password breach can mean data exfiltration, ransomware staging, or compliance failure. It outranks things like stale API tokens, weak password policies, or overly-permissive dev configs.\n\n**One-line rationale for a mentor:** Three simultaneous failure modes on a production credential — plaintext, world-readable, unguarded from version control — constitute a compounding risk that individually justifies a warn but together clearly warrants a high.",
+      "sessionId": "32681bb9-3929-4faf-88f5-8f979c34d7e7",
+      "durationMs": 16722,
+      "wallMs": 24438,
+      "errorDetail": null
+    },
+    {
+      "id": "access-config-01",
+      "domain": "Access & Config Safety",
+      "expectedVerdict": "real-risk",
+      "caseRationale": "An admin interface bound to 0.0.0.0 with no auth configured is textbook real risk — reachable from the network by anyone, with zero access control.",
+      "finding": {
+        "severity": "crit",
+        "title": "Admin interface listening on all interfaces with no auth configured",
+        "detail": "The internal admin/management HTTP interface is bound to 0.0.0.0:9090 rather than loopback, and the config has no authentication middleware enabled.",
+        "source": "lsof -iTCP -sTCP:LISTEN -nP · config/admin.yml:3",
+        "evidence": "admin-server *:9090 (LISTEN) · auth: none",
+        "fix": {
+          "title": "Bind to loopback and enable auth",
+          "risk": "Unauthenticated admin surface reachable from the network.",
+          "command": null,
+          "guided": true,
+          "tier": "confirm-required",
+          "tierReason": "Changes network exposure and auth config on an admin surface — needs explicit confirmation.",
+          "autoFix": null
+        }
+      },
+      "outcome": "match",
+      "actualVerdict": "real-risk",
+      "analystRationale": "**Severity agreement: Yes, critical is correct — no downgrade warranted.**\n\nAn unauthenticated admin interface bound to `0.0.0.0` is the combination that makes this critical: either condition alone (all-interfaces *or* no auth) is a problem, but together they mean anyone who can route a packet to port 9090 gets admin access with zero friction. This isn't a scanner edge case or a miscategorized low-risk config quirk — the lsof output and `auth: none` in the config file are direct, unambiguous evidence of an open attack surface.\n\n**Priority ranking: Top of queue, ahead of everything except an active compromise indicator.** This beats secret exposure, credential hygiene, and permission findings because it's *immediately exploitable with no preconditions* — no credential theft required, no privilege escalation chain, just a TCP connection. If this machine is reachable from any non-loopback network (LAN, VPN, or worse, internet), the blast radius is full admin takeover.\n\n**Mentor rationale:** The zero-effort exploit path — unauthenticated admin on all interfaces — means time-to-exploitation is measured in seconds for any attacker with network access, which is why this belongs at the top regardless of what else the scan found.",
+      "sessionId": "3b301953-d62e-482c-8d29-7feee1e1c30f",
+      "durationMs": 18721,
+      "wallMs": 25854,
+      "errorDetail": null
+    },
+    {
+      "id": "credential-hygiene-02",
+      "domain": "Credential Hygiene",
+      "expectedVerdict": "false-positive",
+      "caseRationale": "\"password\" appears only inside a code comment describing a UI validation rule — there is no actual secret value anywhere near it. A keyword scanner trips on the word; a reviewer reading the line sees nothing sensitive.",
+      "finding": {
+        "severity": "warn",
+        "title": "Possible password reference detected",
+        "detail": "Keyword scan matched the string \"password\" in source.",
+        "source": "src/components/SignupForm.jsx:42",
+        "evidence": "// TODO: password field should require 12+ chars per new policy, not 8",
+        "fix": null
+      },
+      "outcome": "match",
+      "actualVerdict": "false-positive",
+      "analystRationale": "**False positive. Downgrade this — the `warn` is over-scored.**\n\nThe matched string lives inside a `// TODO` comment that's explicitly advocating for *stricter* password policy (12+ chars), not exposing, storing, or mishandling a credential. A keyword scanner firing on the word \"password\" in a developer note about tightening requirements is textbook false-positive territory — the intent of the code is security-positive, not a hygiene gap. Priority-wise, this should sit at the bottom of the queue, below any real findings like hardcoded secrets, plaintext credentials in config files, or weak hashing — address those first, and this one may not need a ticket at all beyond a quick scanner suppression annotation.\n\n**Mentor rationale:** Keyword match on `\"password\"` inside a TODO comment calling for stronger enforcement is a scanner artifact, not a credential hygiene finding — suppress or label `accepted-risk` and move on.",
+      "sessionId": "8cdef752-5678-4559-9239-239362abf840",
+      "durationMs": 13891,
+      "wallMs": 21406,
+      "errorDetail": null
+    },
+    {
+      "id": "access-config-02",
+      "domain": "Access & Config Safety",
+      "expectedVerdict": "false-positive",
+      "caseRationale": "Bound to 127.0.0.1 only — despite the unusual/high port number tripping an \"unexpected listener\" heuristic, it is not reachable from any other machine. Unusual port + loopback-only is a hygiene curiosity, not network exposure.",
+      "finding": {
+        "severity": "warn",
+        "title": "Unexpected listener on non-standard port",
+        "detail": "A process is listening on an unusual port not in the known-services list.",
+        "source": "lsof -iTCP -sTCP:LISTEN -nP",
+        "evidence": "local-dev-proxy 127.0.0.1:47812 (LISTEN)",
+        "fix": null
+      },
+      "outcome": "reasonable-disagreement",
+      "actualVerdict": "borderline",
+      "analystRationale": "**Severity: Plausible over-score — worth downgrading to `info`.**\n\nThe binding is `127.0.0.1`, not `0.0.0.0` or a public interface. That's the critical fact: loopback-only listeners present zero external attack surface — no remote actor can reach this port without already having local execution, at which point the port is the least of your problems. The process name `local-dev-proxy` is consistent with intentional dev tooling (Proxyman, mitmproxy, a custom tunnel wrapper, etc.), and port 47812 is in the high ephemeral range where dev tools commonly self-assign. A `warn` is defensible as a \"flag for awareness\" posture, but as a risk signal it overstates the exposure.\n\n**Priority rank: Bottom tier.** Behind any external-facing listener, any credential hygiene finding, any SSH misconfiguration, any world-readable secret file, and any unrecognized process — this only competes with other housekeeping/informational items. If the posture scan has real findings, this shouldn't consume remediation attention.\n\n**Mentor rationale:** A loopback-bound, dev-named process on a high ephemeral port is the scanner doing its job correctly but the risk model getting the weight wrong — `warn` is appropriate as a coverage signal, not as an action item, unless the user doesn't recognize the process at all.\n\n**One action worth taking:** Ask Nikhil if he recognizes `local-dev-proxy`. If yes → downgrade to `info`, note it as known dev tooling. If no → *then* escalate, because an unrecognized loopback process is a different story entirely.",
+      "sessionId": "48ecf1f9-a3a2-41c3-a8a5-a82dd0d468e0",
+      "durationMs": 18727,
+      "wallMs": 24638,
+      "errorDetail": null
+    },
+    {
+      "id": "secret-exposure-02",
+      "domain": "Secret Exposure",
+      "expectedVerdict": "false-positive",
+      "caseRationale": "The matched key pattern lives in a test fixture file, in a __fixtures__ directory, using a value explicitly labeled FAKE — intentional test data for the app's own secret-detection logic, not a real credential.",
+      "finding": {
+        "severity": "warn",
+        "title": "AWS-key-shaped string detected in repo",
+        "detail": "Pattern matching a live AWS access key ID format was found in the repository.",
+        "source": "test/__fixtures__/secret-scanner.fixture.js:6",
+        "evidence": "const FAKE_AWS_KEY_FOR_TESTS = \"AKIAFAKEKEYDONOTUSE00\"; // intentionally fake, used to test our own scanner",
+        "fix": null
+      },
+      "outcome": "match",
+      "actualVerdict": "false-positive",
+      "analystRationale": "**This is a false positive and `warn` is over-scored.** The evidence is unambiguous: the string lives in `test/__fixtures__/`, the variable is named `FAKE_AWS_KEY_FOR_TESTS`, and the inline comment explicitly says *\"intentionally fake, used to test our own scanner.\"* All three signals align — file location, identifier name, and developer intent comment — which is about as clear as a false positive gets. The value itself (`AKIAFAKEKEYDONOTUSE00`) also fails AWS key validation (trailing zeros, non-entropic suffix), so there's no realistic risk of it being a live credential that was retroactively labeled \"fake.\"\n\n**Priority ranking: bottom of the queue**, below any real unmasked secret, any credential in git history, any hardcoded key in a config or dotfile, and even ambiguous findings where intent is unclear. If anything, this finding is evidence the scanner is working correctly — it detected the fixture that was designed to trigger it.\n\n**Mentor rationale:** A test fixture whose sole job is to exercise a secret-scanner pattern match is expected to match that pattern; flagging it as a genuine finding conflates \"looks like a key\" with \"is a key,\" and a well-calibrated scanner (or analyst) should suppress or downgrade it rather than inflate the finding count.",
+      "sessionId": "287417d5-b858-4df8-bc2d-5712b7d04282",
+      "durationMs": 16394,
+      "wallMs": 21797,
+      "errorDetail": null
+    },
+    {
+      "id": "credential-hygiene-03",
+      "domain": "Credential Hygiene",
+      "expectedVerdict": "borderline",
+      "caseRationale": "The token IS plaintext (a genuine weakness in principle), but it's mitigated by both 0600 permissions and .gitignore — reasonable reviewers can disagree on whether the residual risk still earns a warn or should be downgraded to informational.",
+      "finding": {
+        "severity": "warn",
+        "title": "Plaintext API token in local config",
+        "detail": "A long-lived API token is stored unencrypted in a local config file. The file is mode 0600 (owner read/write only) and is listed in .gitignore.",
+        "source": ".env.local:4",
+        "evidence": "API_TOKEN=****k9x2",
+        "fix": {
+          "title": "Optional: migrate to OS keychain",
+          "risk": "Low residual risk given 0600 + gitignore, but the value is still recoverable by anything running as this user.",
+          "command": null,
+          "guided": true,
+          "tier": "confirm-required",
+          "tierReason": "Not urgent given existing mitigations — human judgment call on priority.",
+          "autoFix": null
+        }
+      },
+      "outcome": "reasonable-disagreement",
+      "actualVerdict": "false-positive",
+      "analystRationale": "**Severity agreement: Yes, `warn` is correct — do not downgrade.**\n\nThe two mitigating controls (0600 mode + .gitignore) are meaningful and doing real work: they eliminate the two most common plaintext-credential failure modes — accidental git push and nosy local users. But they don't eliminate the risk. A plaintext, long-lived token is fully exposed the moment the machine is compromised, the file is copied anywhere, or a process running as the same user reads it. The fact that it's *long-lived* specifically keeps this out of false-positive territory — a short-lived token would make the exposure window negligible; this one doesn't.\n\n**Priority ranking:** Mid-tier. Below any finding where a credential is already in git history, in a world-readable file, or in a log that leaves the machine. Above orphaned/expired credential findings or weak-password issues on low-sensitivity systems. If your finding list has anything involving remote secret exposure or committed secrets, fix those first — this is a hygiene debt item, not an active leak.\n\n**One-line rationale for a mentor:** *The file controls lower the blast radius but don't neutralize the underlying risk of storing a long-lived secret in a format any local process or attacker with user-level access can read without ceremony.*",
+      "sessionId": "613af2ec-4805-42cf-ad37-616993b3f87f",
+      "durationMs": 18079,
+      "wallMs": 23286,
+      "errorDetail": null
+    },
+    {
+      "id": "file-permission-02",
+      "domain": "File Permission Health",
+      "expectedVerdict": "borderline",
+      "caseRationale": "0640 is stricter than world-readable but looser than the SSH-recommended 0600. Whether this is a real finding depends on who else is actually in that group — information the finding doesn't resolve, so reasonable analysts can land on either side.",
+      "finding": {
+        "severity": "info",
+        "title": "SSH private key is group-readable",
+        "detail": "~/.ssh/id_rsa_deploy has mode 0640 (rw-r-----) instead of the recommended 0600 — the owning group can read the key.",
+        "source": "~/.ssh/id_rsa_deploy",
+        "evidence": "-rw-r-----  1 nikhi  staff  464 id_rsa_deploy",
+        "fix": {
+          "title": "Tighten to 0600",
+          "risk": "Any account in the 'staff' group could read this key.",
+          "command": "chmod 600 ~/.ssh/id_rsa_deploy",
+          "guided": false,
+          "tier": "auto-safe",
+          "tierReason": "chmod on a file this account owns.",
+          "autoFix": "chmod 600 ~/.ssh/id_rsa_deploy"
+        }
+      },
+      "outcome": "match",
+      "actualVerdict": "borderline",
+      "analystRationale": "**Severity: Under-scored.** \"Info\" is too gentle here — I'd bump this to **low**, not because the sky is falling, but because `staff` on macOS is effectively \"all admin users on this machine,\" which is a meaningful attack surface for a key named `id_rsa_deploy`. Deploy keys imply production or CI/CD access; the blast radius of exposure is wider than a personal key. SSH won't reject a 0640 key the way it rejects 0644/0777, so this is actively exploitable by any co-admin on the box — it's not theoretical.\n\n**Priority rank:** Above any \"permission is slightly loose on a local config file\" finding, but below anything world-readable or any plaintext credential finding. In a typical queue: world-readable secrets → plaintext creds → **this (0640 deploy key)** → overly-permissive non-sensitive files. The fix is a one-liner (`chmod 0600 ~/.ssh/id_rsa_deploy`) so the cost-to-remediate is near zero, which argues for doing it immediately regardless of exact severity tier.\n\n**Mentor rationale:** A group-readable deploy key on macOS is a real local-privilege-escalation stepping stone — `staff` group membership is broad, the key likely touches production, and the fix costs nothing; calling it \"info\" undersells the actual risk and may cause it to be skipped in triage.",
+      "sessionId": "baa9c4eb-ed46-47b1-a050-b6a93ac49a1f",
+      "durationMs": 19112,
+      "wallMs": 24691,
+      "errorDetail": null
+    },
+    {
+      "id": "incident-readiness-01",
+      "domain": "Incident Readiness",
+      "expectedVerdict": "borderline",
+      "caseRationale": "7-day log retention is below common best-practice guidance (30 days) but still exceeds many baseline compliance minimums. Whether this is worth flagging depends on an unstated compliance target, making it genuinely context-dependent rather than a clear pass or fail.",
+      "finding": {
+        "severity": "info",
+        "title": "Auth log retention below common best-practice guidance",
+        "detail": "Gateway auth logs are rotated and deleted after 7 days. Common security guidance recommends 30+ days for incident reconstruction, though this exceeds many baseline compliance minimums.",
+        "source": "~/.openclaw/logs/gateway.log · logrotate config",
+        "evidence": "rotate 7 (days) · compress",
+        "fix": {
+          "title": "Extend retention to 30 days",
+          "risk": "Shorter retention limits how far back an incident investigation can reconstruct events.",
+          "command": null,
+          "guided": true,
+          "tier": "confirm-required",
+          "tierReason": "Retention policy is a judgment call tied to compliance requirements the scanner doesn't know.",
+          "autoFix": null
+        }
+      },
+      "outcome": "reasonable-disagreement",
+      "actualVerdict": "real-risk",
+      "analystRationale": "**Severity agreement: Yes, \"info\" is correct — don't touch it.**\n\nLog retention at 7 days is a *capability gap*, not a vulnerability. Nothing is exposed, no access control is broken, and no active threat is present. The finding itself concedes this meets many baseline minimums, which means \"info\" is the right call; upgrading it would inflate the severity scale and make triage harder, not easier.\n\n**Priority ranking: Near the bottom.** In a local single-user demo environment, the blast radius of short retention is limited — there's no SOC waiting on 90-day forensic timelines. It only becomes meaningful the moment an incident spans beyond day 7 and you need reconstruction evidence that's already gone. Until that scenario is plausible (e.g., multi-user, production-facing, compliance-scoped), this sits below anything involving credential exposure, access control misconfiguration, or unencrypted secrets.\n\n**Mentor rationale:** Retention gaps are a *future forensics tax*, not a present-day attack surface — correct to flag at info so it isn't forgotten, but wrong to treat it as urgent in a local single-user workspace with no active incident and no regulatory retention obligation.",
+      "sessionId": "62717b8c-d21a-4678-93cc-dd602830bcdb",
+      "durationMs": 18254,
+      "wallMs": 23226,
+      "errorDetail": null
+    }
+  ]
+}

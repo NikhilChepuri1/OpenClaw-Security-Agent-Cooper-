@@ -7,3 +7,5 @@ IDENTITY.md
 HEARTBEAT.md
 VOICE.md
 .DS_Store
+node_modules/
+workspace/skills/sec-posture/dashboard/node_modules/

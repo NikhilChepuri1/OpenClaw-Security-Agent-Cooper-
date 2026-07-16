@@ -1,0 +1,11 @@
+{
+  "name": "sec-posture-dashboard",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": {
+    "express": "^4.21.2",
+    "chart.js": "^4.4.7"
+  }
+}

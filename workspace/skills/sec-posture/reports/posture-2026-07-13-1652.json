@@ -1,0 +1,107 @@
+{
+  "host": "mac",
+  "generatedAt": "2026-07-13T21:52:15.281Z",
+  "overall": 92,
+  "grade": "A",
+  "domains": [
+    {
+      "name": "Secret Exposure",
+      "score": 100,
+      "band": "green",
+      "math": "100 (no findings)",
+      "findings": []
+    },
+    {
+      "name": "Credential Hygiene",
+      "score": 85,
+      "band": "green",
+      "math": "100 − 15 (Plaintext token in config) = 85",
+      "findings": [
+        {
+          "severity": "warn",
+          "title": "Plaintext token in config",
+          "detail": "A long-lived credential is stored unencrypted in the config. Mitigated by 0600 perms + loopback gateway, but a SecretRef/keychain-backed value is stronger.",
+          "source": "openclaw.json:17 · key token",
+          "evidence": "\"token\": \"***bb86\"",
+          "fix": {
+            "title": "Rotate / vault the token",
+            "risk": "Anyone who can read the config file can read this credential verbatim.",
+            "command": "openclaw gateway auth rotate   # regenerate + rewrite; then confirm services reconnect",
+            "guided": true,
+            "tier": "confirm-required",
+            "tierReason": "Rotating a live auth credential can disconnect active sessions — needs a human's go-ahead.",
+            "autoFix": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "File Permission Health",
+      "score": 100,
+      "band": "green",
+      "math": "100 (no findings)",
+      "findings": []
+    },
+    {
+      "name": "Access & Config Safety",
+      "score": 80,
+      "band": "green",
+      "math": "100 − 15 (AirPlay Receiver listening on all interfaces) − 5 (Consumer LAN listeners (expected)) = 80",
+      "findings": [
+        {
+          "severity": "warn",
+          "title": "AirPlay Receiver listening on all interfaces",
+          "detail": "ControlCenter (AirPlay Receiver) is bound to *:7000, *:5000 — a network-exposed media receiver and a known LAN attack surface.",
+          "source": "lsof -iTCP -sTCP:LISTEN -nP",
+          "evidence": "ControlCe *:7000, *:5000 (LISTEN)",
+          "fix": {
+            "title": "Turn off AirPlay Receiver (if unused)",
+            "risk": "Network-exposed receiver on *:7000, *:5000.",
+            "command": "# System Settings → General → AirDrop & Handoff → AirPlay Receiver → Off (no safe headless toggle)",
+            "guided": true,
+            "tier": "confirm-required",
+            "tierReason": "A user-facing system feature toggle with no safe CLI path — a human decides if they use it.",
+            "autoFix": null
+          }
+        },
+        {
+          "severity": "info",
+          "title": "Consumer LAN listeners (expected)",
+          "detail": "Standard Apple/consumer services listening on the LAN: rapportd *:55693, Spotify *:55695, Spotify *:57621. Expected on a personal Mac; no action needed.",
+          "source": "lsof -iTCP -sTCP:LISTEN -nP",
+          "evidence": "rapportd *:55693 · Spotify *:55695 · Spotify *:57621",
+          "fix": null
+        }
+      ]
+    },
+    {
+      "name": "Incident Readiness",
+      "score": 95,
+      "band": "green",
+      "math": "100 − 5 (Unrotated error log) = 95",
+      "findings": [
+        {
+          "severity": "info",
+          "title": "Unrotated error log",
+          "detail": "gateway.err.log is 233 MB with no rotation — disk pressure and slow forensics.",
+          "source": "~/.openclaw/logs/gateway.err.log",
+          "evidence": "233 MB",
+          "fix": {
+            "title": "Archive & rotate the error log",
+            "risk": "Unbounded log growth; slower incident review.",
+            "command": "trash /Users/nikhi/.openclaw/logs/gateway.err.log   # recoverable; gateway recreates it",
+            "guided": false,
+            "tier": "auto-safe",
+            "tierReason": "Truncates a log file this account owns; a snapshot of its tail is captured before truncation.",
+            "autoFix": {
+              "kind": "truncate-log",
+              "target": "/Users/nikhi/.openclaw/logs/gateway.err.log"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "reportPath": "/Users/nikhi/.openclaw/workspace/skills/sec-posture/posture-report.html",
+  "archivePath": "/Users/nikhi/.openclaw/workspace/skills/sec-posture/reports/posture-2026-07-13-1652.html"
+}

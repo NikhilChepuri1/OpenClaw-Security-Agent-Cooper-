@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cooper · Security Posture — Live Dashboard</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/vendor/chart.js/chart.umd.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="brand">Cooper · sec-posture · live</p>
+      <h1>Local Security Posture Dashboard</h1>
+      <div class="meta">
+        Host <b id="hdr-host">—</b> ·
+        <span id="hdr-lastscan">Last scanned: —</span> ·
+        <span id="hdr-connection" class="conn-dot" title="SSE connection">●</span>
+      </div>
+    </div>
+    <div class="grade-row">
+      <button id="btn-scan" class="btn-primary">Run New Scan</button>
+      <div class="grade">
+        <div class="overall">
+          <div class="num"><span id="hdr-overall">—</span><span class="of100">/100</span></div>
+          <div class="lbl">Overall</div>
+        </div>
+        <div class="gradebubble" id="hdr-gradebubble"><span id="hdr-grade">–</span><small>GRADE</small></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="trend-panel">
+    <h2>Score Trend <span class="sub">— overall score across all scans to date</span></h2>
+    <div class="trend-wrap">
+      <canvas id="trend" height="90"></canvas>
+      <div id="trend-placeholder" class="trend-placeholder hidden">Run more scans to see trend.</div>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section class="chart-panel">
+      <h2>Domain Radar</h2>
+      <div class="tier-legend">
+        <span><i class="dot green"></i>90–100 strong</span>
+        <span><i class="dot amber"></i>70–89 needs attention</span>
+        <span><i class="dot red"></i>&lt;70 critical</span>
+      </div>
+      <div id="domain-chips" class="domain-chips"></div>
+      <div id="since-last" class="since-last"></div>
+      <div class="chart-wrap">
+        <canvas id="radar" width="360" height="360"></canvas>
+        <div id="chart-loading" class="loading-overlay hidden">
+          <div class="spinner"></div>
+          <div>Scanning…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="concern-panel">
+      <h2>Areas of Concern</h2>
+      <div id="concerns" class="concerns"></div>
+    </section>
+  </div>
+
+  <section class="findings-panel">
+    <h2>Findings <span class="sub">— every row cited, secrets masked to last 4 chars — click a row to expand its Agent Trace</span></h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Sev</th><th>Domain</th><th>Finding</th><th>Source</th><th>Evidence</th><th>Trace</th></tr></thead>
+        <tbody id="findings-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="autofix-panel hidden" id="autofix-panel">
+    <h2>Recently Auto-Fixed <span class="sub">— applied this session by the Remediation Agent, AUTO-SAFE tier only</span></h2>
+    <div id="autofix-list" class="autofix-list"></div>
+  </section>
+
+  <section class="remediation-panel">
+    <h2>Remediation Queue <span class="sub">— AUTO-SAFE items execute automatically on scan and log a before/after diff; CONFIRM-REQUIRED items need "apply fix N" in chat</span></h2>
+    <div id="remediation-list" class="remediation-list"></div>
+  </section>
+
+  <section class="chat-panel">
+    <h2>Ask Cooper <span class="sub">— live session, real agent turn, not a mock</span></h2>
+    <div id="chat-log" class="chat-log">
+      <div class="chat-msg system">
+        Ask about any domain — e.g. <i>"audit credential hygiene"</i> or <i>"why did Access &amp; Config Safety drop"</i>.
+        Domain-specific questions trigger a fresh scoped re-scan before Cooper answers.
+      </div>
+    </div>
+    <form id="chat-form" class="chat-form">
+      <input id="chat-input" type="text" autocomplete="off" placeholder="Ask Cooper about your posture…" />
+      <button type="submit">Send</button>
+    </form>
+  </section>
+
+  <footer>
+    Cooper · <b>sec-posture</b> dashboard · read-only scanning · scores = 100 − Σ(🔴 40 / 🟡 15 / 🟢 5) per domain · overall = mean of 5 domains.<br>
+    No fix executes automatically. Chat answers come from the real OpenClaw agent session — no canned text, no fabricated fallback.
+  </footer>
+
+</div>
+<script src="/app.js"></script>
+</body>
+</html>

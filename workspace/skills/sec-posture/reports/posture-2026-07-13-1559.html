@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Posture — Monday, July 13, 2026 at 03:59 PM CDT</title>
+<style>
+  :root{
+    --bg:#0f1216; --panel:#171b21; --panel2:#1d222a; --ink:#e8edf3; --muted:#93a0b0;
+    --line:#2a313b; --green:#2fbf71; --amber:#f5a524; --red:#ef4444;
+    --greenbg:rgba(47,191,113,.12); --amberbg:rgba(245,165,36,.12); --redbg:rgba(239,68,68,.12);
+    --gradecolor:var(--green);
+    --gradebg:var(--greenbg);
+  }
+  @media (prefers-color-scheme:light){
+    :root{--bg:#f4f6f9;--panel:#fff;--panel2:#f7f9fc;--ink:#16202b;--muted:#5c6b7a;--line:#e2e8f0;
+      --greenbg:rgba(47,191,113,.10);--amberbg:rgba(245,165,36,.12);--redbg:rgba(239,68,68,.10);}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:32px 20px 60px}
+  .wrap{max-width:960px;margin:0 auto}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:20px;justify-content:space-between;
+    padding:22px 26px;background:var(--panel);border:1px solid var(--line);border-radius:16px}
+  .brand{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+  h1{margin:0;font-size:22px;font-weight:650}
+  .meta{color:var(--muted);font-size:13px;margin-top:6px}
+  .grade{display:flex;align-items:center;gap:16px}
+  .gradebubble{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;
+    font-size:44px;font-weight:800;border:3px solid var(--gradecolor);color:var(--gradecolor);background:var(--gradebg)}
+  .gradebubble small{display:block;font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted)}
+  .overall{text-align:right}
+  .overall .num{font-size:30px;font-weight:750}
+  .overall .lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:14px;margin:22px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;
+    position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px}
+  .card.green::before{background:var(--green)} .card.amber::before{background:var(--amber)} .card.red::before{background:var(--red)}
+  .card h3{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--muted);padding-left:6px}
+  .score{display:flex;align-items:baseline;gap:6px;padding-left:6px}
+  .score b{font-size:34px;font-weight:780;line-height:1}
+  .score span{color:var(--muted);font-size:13px}
+  .bar{height:6px;border-radius:99px;background:var(--panel2);margin:12px 0 8px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px}
+  .green .bar i{background:var(--green)} .amber .bar i{background:var(--amber)} .red .bar i{background:var(--red)}
+  .fcount{font-size:12px;color:var(--muted);padding-left:6px}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em}
+  .pill.green{background:var(--greenbg);color:var(--green)} .pill.amber{background:var(--amberbg);color:var(--amber)} .pill.red{background:var(--redbg);color:var(--red)}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-top:22px}
+  section h2{margin:0 0 14px;font-size:16px}
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  td code{background:var(--panel2);padding:1px 6px;border-radius:6px;font-size:12.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .sev{font-weight:700;white-space:nowrap}
+  .sev.c{color:var(--red)} .sev.w{color:var(--amber)} .sev.i{color:var(--muted)}
+  .rem{counter-reset:r;padding-left:0}
+  .rem li{list-style:none;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px 14px 52px;margin-bottom:12px;position:relative}
+  .rem li::before{counter-increment:r;content:counter(r);position:absolute;left:14px;top:14px;
+    width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;font-weight:700;
+    display:grid;place-items:center;font-size:13px}
+  .rem li.w::before{background:var(--amber)} .rem li.i::before{background:var(--muted)}
+  .rem h4{margin:0 0 4px;font-size:14px}
+  .rem .risk{color:var(--muted);font-size:13px;margin:0 0 8px}
+  .rem pre{margin:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;
+    padding:9px 12px;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;white-space:pre-wrap}
+  .apply{display:inline-block;margin-top:6px;font-size:12px;color:var(--muted)}
+  .apply code{background:var(--bg);padding:1px 6px;border-radius:5px}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:26px;line-height:1.7}
+  .note{font-size:12px;color:var(--muted);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="brand">Cooper · sec-posture</p>
+      <h1>Local Security Posture Report</h1>
+      <div class="meta">Host <b>mac</b> · Monday, July 13, 2026 at 03:59 PM CDT · read-only scan</div>
+    </div>
+    <div class="grade">
+      <div class="overall">
+        <div class="num">92<span style="font-size:16px;color:var(--muted)">/100</span></div>
+        <div class="lbl">Overall</div>
+      </div>
+      <div class="gradebubble"><span>A<small>GRADE</small></span></div>
+    </div>
+  </header>
+
+  <div class="cards">
+    <div class="card green">
+      <h3>1 · Secret Exposure</h3>
+      <div class="score"><b>100</b><span>/100</span></div>
+      <div class="bar"><i style="width:100%"></i></div>
+      <div class="fcount">0 findings · <span class="pill green">green</span></div>
+    </div>
+    <div class="card green">
+      <h3>2 · Credential Hygiene</h3>
+      <div class="score"><b>85</b><span>/100</span></div>
+      <div class="bar"><i style="width:85%"></i></div>
+      <div class="fcount">1 finding · <span class="pill green">green</span></div>
+    </div>
+    <div class="card green">
+      <h3>3 · File Permission Health</h3>
+      <div class="score"><b>100</b><span>/100</span></div>
+      <div class="bar"><i style="width:100%"></i></div>
+      <div class="fcount">0 findings · <span class="pill green">green</span></div>
+    </div>
+    <div class="card green">
+      <h3>4 · Access &amp; Config Safety</h3>
+      <div class="score"><b>80</b><span>/100</span></div>
+      <div class="bar"><i style="width:80%"></i></div>
+      <div class="fcount">2 findings · <span class="pill green">green</span></div>
+    </div>
+    <div class="card green">
+      <h3>5 · Incident Readiness</h3>
+      <div class="score"><b>95</b><span>/100</span></div>
+      <div class="bar"><i style="width:95%"></i></div>
+      <div class="fcount">1 finding · <span class="pill green">green</span></div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Findings <span style="color:var(--muted);font-weight:400;font-size:13px">— every row cited to source, secrets masked</span></h2>
+    <div class="scroll">
+    <table>
+      <thead><tr><th>Sev</th><th>Domain</th><th>Finding</th><th>Source</th><th>Evidence (masked)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="sev w">🟡 Warn</td>
+          <td>Credential Hygiene</td>
+          <td><b>Plaintext token in config.</b> A long-lived credential is stored unencrypted in the config. Mitigated by 0600 perms + loopback gateway, but a SecretRef/keychain-backed value is stronger.</td>
+          <td><code>openclaw.json:17 · key token</code></td>
+          <td><code>&quot;token&quot;: &quot;***bb86&quot;</code></td>
+        </tr>
+        <tr>
+          <td class="sev w">🟡 Warn</td>
+          <td>Access &amp; Config Safety</td>
+          <td><b>AirPlay Receiver listening on all interfaces.</b> ControlCenter (AirPlay Receiver) is bound to *:7000, *:5000 — a network-exposed media receiver and a known LAN attack surface.</td>
+          <td><code>lsof -iTCP -sTCP:LISTEN -nP</code></td>
+          <td><code>ControlCe *:7000, *:5000 (LISTEN)</code></td>
+        </tr>
+        <tr>
+          <td class="sev i">🟢 Info</td>
+          <td>Access &amp; Config Safety</td>
+          <td><b>Consumer LAN listeners (expected).</b> Standard Apple/consumer services listening on the LAN: rapportd *:55693, Spotify *:55695, Spotify *:57621. Expected on a personal Mac; no action needed.</td>
+          <td><code>lsof -iTCP -sTCP:LISTEN -nP</code></td>
+          <td><code>rapportd *:55693 · Spotify *:55695 · Spotify *:57621</code></td>
+        </tr>
+        <tr>
+          <td class="sev i">🟢 Info</td>
+          <td>Incident Readiness</td>
+          <td><b>Unrotated error log.</b> gateway.err.log is 232 MB with no rotation — disk pressure and slow forensics.</td>
+          <td><code>~/.openclaw/logs/gateway.err.log</code></td>
+          <td><code>232 MB</code></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Staged Remediation Queue <span style="color:var(--muted);font-weight:400;font-size:13px">— nothing runs until you say so</span></h2>
+    <ol class="rem">
+      <li class="w">
+        <h4>Rotate / vault the token</h4>
+        <p class="risk">Risk: Anyone who can read the config file can read this credential verbatim.</p>
+        <pre>openclaw gateway auth rotate   # regenerate + rewrite; then confirm services reconnect</pre>
+        <span class="apply">Guided — <code>apply fix N</code> walks you through it</span>
+      </li>
+      <li class="w">
+        <h4>Turn off AirPlay Receiver (if unused)</h4>
+        <p class="risk">Risk: Network-exposed receiver on *:7000, *:5000.</p>
+        <pre># System Settings → General → AirDrop &amp; Handoff → AirPlay Receiver → Off (no safe headless toggle)</pre>
+        <span class="apply">Guided — <code>apply fix N</code> walks you through it</span>
+      </li>
+      <li class="i">
+        <h4>Archive &amp; rotate the error log</h4>
+        <p class="risk">Risk: Unbounded log growth; slower incident review.</p>
+        <pre>trash /Users/nikhi/.openclaw/logs/gateway.err.log   # recoverable; gateway recreates it</pre>
+        <span class="apply">Run with <code>apply fix N</code></span>
+      </li>
+    </ol>
+  </section>
+
+  <footer>
+    Generated by Cooper · <b>sec-posture</b> (Node/TS scanner) · read-only scan, secrets masked to last 4 chars.<br>
+    Scoring: each domain 100 − Σ(🔴 40 / 🟡 15 / 🟢 5). Overall = mean of 5 domains → A≥90 · B 80–89 · C 70–79 · D 60–69 · F&lt;60.<br>
+    No fix has been executed. Confirmation required before any change.
+  </footer>
+
+</div>
+</body>
+</html>
